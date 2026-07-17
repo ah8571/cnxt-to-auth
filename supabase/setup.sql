@@ -42,6 +42,29 @@ create table if not exists public.user_products (
     check (status in ('active', 'disabled'))
 );
 
+-- ── Platform Tokens (OAuth tokens for social platforms) ──────────────────
+
+create table if not exists public.platform_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  platform text not null,
+  access_token text not null,
+  refresh_token text,
+  token_expires_at timestamptz,
+  platform_user_id text,       -- e.g. Bluesky DID, X user ID
+  platform_handle text,        -- e.g. @username, user.bsky.social
+  metadata jsonb default '{}', -- platform-specific extra data
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, platform),
+  constraint platform_tokens_platform_check
+    check (platform in ('bluesky', 'x', 'linkedin', 'facebook', 'instagram', 'threads', 'tiktok', 'youtube'))
+);
+
+-- Token encryption helper (uses Supabase Vault or pgcrypto)
+-- For production: store tokens via Supabase Vault; this table stores
+-- non-sensitive metadata only and references vault secrets by ID.
+
 -- ── Row Level Security ───────────────────────────────────────────────────
 
 -- Profiles: users can read any profile, but only update their own
@@ -60,4 +83,11 @@ alter table public.user_products enable row level security;
 
 create policy "Users can view their own products"
   on public.user_products for select
+  using (auth.uid() = user_id);
+
+-- Platform tokens: users can only access their own
+alter table public.platform_tokens enable row level security;
+
+create policy "Users can manage their own platform tokens"
+  on public.platform_tokens for all
   using (auth.uid() = user_id);
