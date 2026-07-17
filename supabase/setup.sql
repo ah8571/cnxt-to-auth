@@ -92,3 +92,48 @@ alter table public.platform_tokens enable row level security;
 create policy "Users can manage their own platform tokens"
   on public.platform_tokens for all
   using (auth.uid() = user_id);
+
+-- ── Scheduled Posts ──────────────────────────────────────────────────────
+
+create table if not exists public.scheduled_posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  text text not null,
+  platforms text[] not null default '{}',
+  media_urls text[],
+  scheduled_at timestamptz not null,
+  posted_at timestamptz,
+  status text not null default 'pending',
+  results jsonb,
+  created_at timestamptz not null default now(),
+  constraint scheduled_posts_status_check
+    check (status in ('pending', 'posted', 'failed', 'cancelled'))
+);
+
+alter table public.scheduled_posts enable row level security;
+
+create policy "Users can manage their own scheduled posts"
+  on public.scheduled_posts for all
+  using (auth.uid() = user_id);
+
+-- Index for Worker cron: find posts due now
+create index if not exists idx_scheduled_posts_due
+  on public.scheduled_posts (status, scheduled_at)
+  where status = 'pending';
+
+-- ── Post History (cross-platform audit) ───────────────────────────────────
+
+create table if not exists public.post_history (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  text text not null,
+  platforms text[] not null default '{}',
+  results jsonb not null default '[]',
+  posted_at timestamptz not null default now()
+);
+
+alter table public.post_history enable row level security;
+
+create policy "Users can manage their own post history"
+  on public.post_history for all
+  using (auth.uid() = user_id);
