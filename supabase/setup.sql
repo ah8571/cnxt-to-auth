@@ -48,15 +48,16 @@ create table if not exists public.platform_tokens (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   platform text not null,
+  profile_label text not null default 'Default',  -- e.g. "Personal", "Company Page", "Side project"
   access_token text not null,
   refresh_token text,
   token_expires_at timestamptz,
-  platform_user_id text,       -- e.g. Bluesky DID, X user ID
+  platform_user_id text,       -- e.g. Bluesky DID, X user ID, LinkedIn URN
   platform_handle text,        -- e.g. @username, user.bsky.social
-  metadata jsonb default '{}', -- platform-specific extra data
+  metadata jsonb default '{}', -- platform-specific extra data (page_id, ig_user_id, etc.)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (user_id, platform),
+  unique (user_id, platform, profile_label),
   constraint platform_tokens_platform_check
     check (platform in ('bluesky', 'x', 'linkedin', 'facebook', 'instagram', 'threads', 'tiktok', 'youtube'))
 );
