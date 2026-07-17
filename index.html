@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — cnxt</title>
+  <meta name="description" content="Sign in to cnxt — free tools for creators and freelancers." />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="auth-shell">
+    <header class="auth-header">
+      <a href="https://cnxt.to" class="auth-logo">cnxt</a>
+      <p class="auth-subtitle">Free tools for creators &amp; freelancers</p>
+    </header>
+
+    <main class="auth-card">
+      <div class="auth-tabs">
+        <button id="show-sign-in" class="auth-tab auth-tab-active">Sign in</button>
+        <button id="show-sign-up" class="auth-tab">Create account</button>
+      </div>
+
+      <!-- Sign In -->
+      <form id="sign-in-form" class="auth-form">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="email" autocomplete="email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="current-password" required minlength="6" />
+        </label>
+        <p id="auth-feedback" class="auth-feedback" data-mode="idle"></p>
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </form>
+
+      <!-- Sign Up -->
+      <form id="sign-up-form" class="auth-form auth-form-hidden">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="email" autocomplete="email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" autocomplete="new-password" required minlength="6" />
+        </label>
+        <label class="field">
+          <span>Confirm password</span>
+          <input type="password" name="confirm" autocomplete="new-password" required minlength="6" />
+        </label>
+        <p id="auth-feedback-signup" class="auth-feedback" data-mode="idle"></p>
+        <button type="submit" class="btn btn-primary">Create account</button>
+      </form>
+
+      <p class="auth-footer-text">
+        By continuing, you agree to the cnxt
+        <a href="https://invoices.cnxt.to/terms.html">Terms</a> and
+        <a href="https://invoices.cnxt.to/privacy.html">Privacy Policy</a>.
+      </p>
+    </main>
+  </div>
+
+  <script type="module" src="./js/auth.js"></script>
+</body>
+</html>

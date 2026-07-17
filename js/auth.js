@@ -1,0 +1,173 @@
+import { getSupabaseClient, isSupabaseConfigured } from "./supabase-client.js";
+import { setSharedSession } from "./cnxt-auth.js";
+
+const REDIRECT_PARAM = "redirect";
+const DEFAULT_REDIRECT = "https://cnxt.to";
+
+const signInForm = document.querySelector("#sign-in-form");
+const signUpForm = document.querySelector("#sign-up-form");
+const signInTab = document.querySelector("#show-sign-in");
+const signUpTab = document.querySelector("#show-sign-up");
+const signInFeedback = document.querySelector("#auth-feedback");
+const signUpFeedback = document.querySelector("#auth-feedback-signup");
+
+// --- Tab switching ---
+
+function setActiveTab(mode) {
+  const isSignIn = mode === "sign-in";
+  signInTab.classList.toggle("auth-tab-active", isSignIn);
+  signUpTab.classList.toggle("auth-tab-active", !isSignIn);
+  signInForm.classList.toggle("auth-form-hidden", !isSignIn);
+  signUpForm.classList.toggle("auth-form-hidden", isSignIn);
+  clearFeedback();
+}
+
+signInTab.addEventListener("click", () => setActiveTab("sign-in"));
+signUpTab.addEventListener("click", () => setActiveTab("sign-up"));
+
+// --- Feedback ---
+
+function setFeedback(el, message = "", mode = "idle") {
+  el.textContent = message;
+  el.dataset.mode = mode;
+  el.classList.toggle("is-visible", Boolean(message));
+}
+
+function clearFeedback() {
+  setFeedback(signInFeedback);
+  setFeedback(signUpFeedback);
+}
+
+// --- Redirect ---
+
+function getRedirectUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const redirect = params.get(REDIRECT_PARAM);
+  if (!redirect) return DEFAULT_REDIRECT;
+
+  // Only allow redirects to cnxt.to domains
+  try {
+    const url = new URL(redirect);
+    if (url.hostname.endsWith(".cnxt.to") || url.hostname === "cnxt.to") {
+      return redirect;
+    }
+  } catch {}
+  return DEFAULT_REDIRECT;
+}
+
+function doRedirect() {
+  window.location.href = getRedirectUrl();
+}
+
+// --- Supabase client ---
+
+async function getClient() {
+  if (!isSupabaseConfigured()) {
+    setFeedback(signInFeedback, "Authentication is temporarily unavailable.", "error");
+    return null;
+  }
+  try {
+    return await getSupabaseClient();
+  } catch {
+    setFeedback(signInFeedback, "Unable to connect. Please try again shortly.", "error");
+    return null;
+  }
+}
+
+// --- Check existing session ---
+
+async function checkExistingSession() {
+  const client = await getClient();
+  if (!client) return;
+
+  const { data } = await client.auth.getSession();
+  if (data?.session?.user) {
+    // Refresh the shared cookie before redirecting
+    await setSharedSession();
+    doRedirect();
+  }
+}
+
+// --- Sign In ---
+
+signInForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const client = await getClient();
+  if (!client) return;
+
+  const formData = new FormData(signInForm);
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
+
+  if (!email || !password) {
+    setFeedback(signInFeedback, "Please enter your email and password.", "error");
+    return;
+  }
+
+  setFeedback(signInFeedback, "Signing in…", "idle");
+  const { error } = await client.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    setFeedback(signInFeedback, error.message, "error");
+    return;
+  }
+
+  // Persist session to .cnxt.to cookie for cross-domain auth
+  await setSharedSession();
+
+  signInForm.reset();
+  setFeedback(signInFeedback, "Signed in! Redirecting…", "success");
+  doRedirect();
+});
+
+// --- Sign Up ---
+
+signUpForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const client = await getClient();
+  if (!client) return;
+
+  const formData = new FormData(signUpForm);
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
+  const confirm = String(formData.get("confirm") || "");
+
+  if (!email || !password) {
+    setFeedback(signUpFeedback, "Please fill in all fields.", "error");
+    return;
+  }
+
+  if (password !== confirm) {
+    setFeedback(signUpFeedback, "Passwords do not match.", "error");
+    return;
+  }
+
+  if (password.length < 6) {
+    setFeedback(signUpFeedback, "Password must be at least 6 characters.", "error");
+    return;
+  }
+
+  setFeedback(signUpFeedback, "Creating your account…", "idle");
+  const { data, error } = await client.auth.signUp({ email, password });
+
+  if (error) {
+    setFeedback(signUpFeedback, error.message, "error");
+    return;
+  }
+
+  signUpForm.reset();
+
+  // If Supabase auto-signed-in (email confirmation disabled), persist the cookie
+  if (data?.session?.user) {
+    await setSharedSession();
+    setFeedback(signUpFeedback, "Account created! Redirecting…", "success");
+    doRedirect();
+    return;
+  }
+
+  setFeedback(signUpFeedback, "Account created! Check your email to confirm, then sign in.", "success");
+});
+
+// --- Init ---
+
+checkExistingSession();

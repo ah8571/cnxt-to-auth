@@ -1,0 +1,3 @@
+# Cloudflare Pages config — auth.cnxt.to
+# All routes serve index.html (SPA-like, though this is a single page)
+/*    /index.html   200
