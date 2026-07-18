@@ -137,3 +137,47 @@ alter table public.post_history enable row level security;
 create policy "Users can manage their own post history"
   on public.post_history for all
   using (auth.uid() = user_id);
+
+-- ── Newsletter Subscriptions ─────────────────────────────────────────────
+
+create table if not exists public.newsletter_subscriptions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  subscribed boolean not null default true,
+  subscribed_at timestamptz not null default now(),
+  unsubscribed_at timestamptz
+);
+
+alter table public.newsletter_subscriptions enable row level security;
+
+create policy "Users can view their own newsletter subscription"
+  on public.newsletter_subscriptions for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own newsletter subscription"
+  on public.newsletter_subscriptions for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own newsletter subscription"
+  on public.newsletter_subscriptions for update
+  using (auth.uid() = user_id);
+
+-- ── Terms of Service Agreements ──────────────────────────────────────────
+
+create table if not exists public.terms_agreements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  terms_version text not null default '1.0',
+  privacy_version text not null default '1.0',
+  agreed_at timestamptz not null default now()
+);
+
+alter table public.terms_agreements enable row level security;
+
+create policy "Users can view their own terms agreements"
+  on public.terms_agreements for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own terms agreements"
+  on public.terms_agreements for insert
+  with check (auth.uid() = user_id);

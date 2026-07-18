@@ -48,14 +48,22 @@
           <span>Confirm password</span>
           <input type="password" name="confirm" autocomplete="new-password" required minlength="6" />
         </label>
+        <label class="field-checkbox">
+          <input type="checkbox" name="terms" required />
+          <span>I agree to the <a href="/terms.html" target="_blank">Terms of Service</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a></span>
+        </label>
+        <label class="field-checkbox">
+          <input type="checkbox" name="newsletter" />
+          <span>Send me the <strong>Feedfree Digest</strong> — curated startup advice from social media</span>
+        </label>
         <p id="auth-feedback-signup" class="auth-feedback" data-mode="idle"></p>
         <button type="submit" class="btn btn-primary">Create account</button>
       </form>
 
       <p class="auth-footer-text">
         By continuing, you agree to the cnxt
-        <a href="https://invoices.cnxt.to/terms.html">Terms</a> and
-        <a href="https://invoices.cnxt.to/privacy.html">Privacy Policy</a>.
+        <a href="/terms.html">Terms</a> and
+        <a href="/privacy.html">Privacy Policy</a>.
       </p>
     </main>
   </div>

@@ -131,6 +131,8 @@ signUpForm.addEventListener("submit", async (event) => {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const confirm = String(formData.get("confirm") || "");
+  const termsAccepted = formData.get("terms") === "on";
+  const newsletter = formData.get("newsletter") === "on";
 
   if (!email || !password) {
     setFeedback(signUpFeedback, "Please fill in all fields.", "error");
@@ -147,12 +149,34 @@ signUpForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (!termsAccepted) {
+    setFeedback(signUpFeedback, "Please agree to the Terms of Service and Privacy Policy.", "error");
+    return;
+  }
+
   setFeedback(signUpFeedback, "Creating your account…", "idle");
   const { data, error } = await client.auth.signUp({ email, password });
 
   if (error) {
     setFeedback(signUpFeedback, error.message, "error");
     return;
+  }
+
+  // Record terms acceptance and newsletter preference
+  if (data?.user?.id) {
+    try {
+      // Insert terms agreement
+      await client
+        .from("terms_agreements")
+        .insert({ user_id: data.user.id, terms_version: "1.0", privacy_version: "1.0" });
+
+      // Insert newsletter subscription if opted in
+      if (newsletter) {
+        await client
+          .from("newsletter_subscriptions")
+          .insert({ user_id: data.user.id, email, subscribed: true });
+      }
+    } catch { /* non-critical */ }
   }
 
   signUpForm.reset();
