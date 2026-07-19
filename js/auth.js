@@ -75,14 +75,18 @@ async function getClient() {
 }
 
 // --- Check existing session ---
-// NOTE: We intentionally do NOT auto-redirect on load. Auto-redirecting
-// whenever a session exists (in auth.cnxt.to's own localStorage) bounced
-// users straight back to the redirect target, preventing them from ever
-// seeing the sign-in form. The submit handlers below already redirect
-// after a successful sign-in/sign-up.
+// If the user is already signed in on this device, persist the shared
+// .cnxt.to cookie and redirect. This allows post.cnxt.to (and other
+// cnxt tools) to restore the session cross-domain.
 
 async function checkExistingSession() {
-  // No-op: do not auto-redirect on page load.
+  const client = await getClient();
+  if (!client) return;
+  const { data } = await client.auth.getSession();
+  if (data.session?.user) {
+    await setSharedSession();
+    doRedirect();
+  }
 }
 
 // --- Sign In ---
